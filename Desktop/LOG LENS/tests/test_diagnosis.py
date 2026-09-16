@@ -86,6 +86,33 @@ def test_bedrock_boundary_is_explicitly_unavailable():
         BedrockDiagnosisService().diagnose([record()])
 
 
+def test_bedrock_service_with_mock_client():
+    class MockBedrockBody:
+        def read(self):
+            return json.dumps({
+                "content": [{
+                    "text": json.dumps({
+                        "summary": "Database connection timeout occurred",
+                        "root_cause": "Database server took too long to respond",
+                        "confidence": 0.9,
+                        "evidence": [{"fingerprint": "fp-1", "observation": "Connection timed out"}],
+                        "recommendations": ["Increase timeout and add retry logic"]
+                    })
+                }]
+            }).encode("utf-8")
+
+    class MockBedrockClient:
+        def invoke_model(self, **kwargs):
+            return {"body": MockBedrockBody()}
+
+    service = BedrockDiagnosisService(client=MockBedrockClient(), model_id="test-model")
+    diagnosis = service.diagnose([record()])
+
+    assert diagnosis.summary == "Database connection timeout occurred"
+    assert diagnosis.confidence == 0.9
+    assert diagnosis.evidence[0].fingerprint == "fp-1"
+
+
 def test_application_diagnosis_uses_service_in_local_mode():
     storage = InMemoryStorage()
     storage.upsert(record())
