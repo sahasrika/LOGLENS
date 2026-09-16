@@ -30,19 +30,39 @@ class DiagnosisProviderUnavailableError(DiagnosisServiceError):
 class DiagnosisEvidence(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    fingerprint: str = Field(min_length=1)
+    fingerprint: str = Field(default="", min_length=0)
     observation: str = Field(min_length=1)
-    source: Literal["error_record"] = "error_record"
+    source: Literal["error_record", "log", "stack_trace", "pattern", "code"] = "error_record"
+    confidence: Literal["confirmed", "likely", "possible"] = "confirmed"
 
 
 class Diagnosis(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     summary: str = Field(min_length=1)
-    root_cause: str = Field(min_length=1)
+    severity: Literal["low", "medium", "high", "critical"] = "medium"
     confidence: float = Field(ge=0.0, le=1.0)
-    evidence: list[DiagnosisEvidence] = Field(min_length=1)
-    recommendations: list[str] = Field(min_length=1)
+    error_category: str = Field(default="Uncategorized")
+
+    what_happened: str = Field(default="")
+    why_it_happened: str = Field(default="")
+
+    evidence: list[DiagnosisEvidence] = Field(default_factory=list)
+    affected_files: list[str] = Field(default_factory=list)
+
+    root_cause: str = Field(min_length=1)
+
+    beginner_explanation: str = Field(default="")
+    recommended_fix: str = Field(default="")
+    code_improvement: str = Field(default="")
+    suggested_patch: str = Field(default="")
+    why_this_improves_the_code: str = Field(default="")
+
+    prevention_steps: list[str] = Field(default_factory=list)
+    verification_steps: list[str] = Field(default_factory=list)
+    limitations: list[str] = Field(default_factory=list)
+
+    recommendations: list[str] = Field(default_factory=list)
 
 
 class DiagnosisService(ABC):
@@ -116,6 +136,7 @@ def redact_sensitive_data(text: str) -> str:
     if not text:
         return text
     redacted = _AWS_KEY_PATTERN.sub("[REDACTED_AWS_KEY]", text)
+    redacted = _BEARER_JWT_PATTERN.sub("[REDACTED_TOKEN]", redacted)
     redacted = _SENSITIVE_PARAM_PATTERN.sub(r"\1=[REDACTED]", redacted)
     redacted = _IP_PATTERN.sub("[REDACTED_IP]", redacted)
     return redacted
@@ -153,29 +174,42 @@ class BedrockDiagnosisService(DiagnosisService):
 
     def __init__(self, client: Any | None = None, model_id: str | None = None) -> None:
         self.client = client
-        self.model_id = model_id or "anthropic.claude-3-5-sonnet-20241022-v2:0"
+        self.model_id = model_id if model_id is not None else "global.anthropic.claude-sonnet-4-6"
 
     def diagnose(self, records: list[ErrorRecord]) -> Diagnosis:
-        serialized_evidence = redact_sensitive_data(serialize_evidence(records))
+        if not self.model_id or not self.model_id.strip():
+            raise DiagnosisProviderUnavailableError("BEDROCK_MODEL_ID is missing or not configured")
         if self.client is None:
             raise DiagnosisProviderUnavailableError("Bedrock diagnosis provider is not configured")
+        serialized_evidence = redact_sensitive_data(serialize_evidence(records))
 
         prompt = (
-            "You are an expert software developer and log diagnostic system.\n"
+            "You are an expert software developer and log diagnostic system helping beginners understand application failures.\n"
             "Analyze the provided log evidence and return a JSON object matching this exact schema:\n"
             "{\n"
-            '  "summary": "Non-empty string describing what happened in plain English",\n'
-            '  "root_cause": "Non-empty string describing why it happened",\n'
-            '  "confidence": Float between 0.0 and 1.0,\n'
+            '  "summary": "Summary of failure",\n'
+            '  "severity": "low|medium|high|critical",\n'
+            '  "confidence": 0.0 to 1.0,\n'
+            '  "error_category": "Category name",\n'
+            '  "what_happened": "Clear explanation of what happened in simple language",\n'
+            '  "why_it_happened": "Technical explanation of root cause",\n'
             '  "evidence": [\n'
-            '    {"fingerprint": "record fingerprint", "observation": "specific observation", "source": "error_record"}\n'
+            '    {"fingerprint": "fp", "observation": "obs", "source": "error_record|log|stack_trace|pattern|code", "confidence": "confirmed|likely|possible"}\n'
             '  ],\n'
-            '  "recommendations": ["Non-empty list of actionable recommendation strings"]\n'
+            '  "affected_files": ["file1", "file2"],\n'
+            '  "root_cause": "Root cause summary",\n'
+            '  "beginner_explanation": "Beginner friendly analogy or explanation",\n'
+            '  "recommended_fix": "Steps to fix",\n'
+            '  "code_improvement": "Proposed modification",\n'
+            '  "suggested_patch": "Code snippet patch",\n'
+            '  "why_this_improves_the_code": "Why this improves reliability/performance",\n'
+            '  "prevention_steps": ["step1", "step2"],\n'
+            '  "verification_steps": ["check1", "check2"],\n'
+            '  "limitations": ["limitation1"]\n'
             "}\n\n"
             "Strict rules:\n"
             "1. Output ONLY valid JSON matching the schema, with no markdown code blocks or additional text.\n"
-            "2. Ensure all required fields are present.\n"
-            "3. Do not invent details not supported by the evidence.\n\n"
+            "2. Do not invent evidence or claim to have inspected source code if none was provided.\n\n"
             f"Evidence JSON:\n{serialized_evidence}\n"
         )
 

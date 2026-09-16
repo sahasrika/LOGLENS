@@ -15,6 +15,7 @@ from api.diagnosis import (
     MalformedDiagnosisError,
     MockDiagnosisService,
     parse_diagnosis_output,
+    redact_sensitive_data,
     serialize_evidence,
 )
 from api.service import ApplicationService, OwnershipNotConfiguredError
@@ -155,4 +156,34 @@ def test_diagnosis_endpoint_returns_structured_mock_result():
         app.dependency_overrides.clear()
 
     assert response.status_code == 200
-    assert response.json()["confidence"] == 0.2
+    data = response.json()
+    assert "fingerprint" in data
+    assert data["diagnosis"]["confidence"] == 0.2
+
+
+def test_bedrock_service_handles_missing_model_id():
+    service = BedrockDiagnosisService(client=object(), model_id="")
+    with pytest.raises(DiagnosisProviderUnavailableError) as exc:
+        service.diagnose([record()])
+    assert "BEDROCK_MODEL_ID" in str(exc.value)
+
+
+def test_redact_sensitive_data_handles_tokens_and_jwt():
+    text = "Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.signature AND password=secret123 AKIAIOSFODNN7EXAMPLE"
+    redacted = redact_sensitive_data(text)
+    assert "[REDACTED_TOKEN]" in redacted
+    assert "[REDACTED]" in redacted
+    assert "[REDACTED_AWS_KEY]" in redacted
+    assert "secret123" not in redacted
+    assert "AKIAIOSFODNN7EXAMPLE" not in redacted
+
+
+def test_bedrock_service_handles_exceptions():
+    class ExceptionClient:
+        def invoke_model(self, **kwargs):
+            raise RuntimeError("AccessDeniedException: User is not authorized")
+
+    service = BedrockDiagnosisService(client=ExceptionClient(), model_id="global.anthropic.claude-sonnet-4-6")
+    with pytest.raises(DiagnosisServiceError) as exc:
+        service.diagnose([record()])
+    assert "Bedrock invocation failed" in str(exc.value)

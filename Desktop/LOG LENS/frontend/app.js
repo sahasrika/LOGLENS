@@ -125,18 +125,28 @@ function renderResults(data) {
       diagnosisBox.innerHTML = '<p class="loading-diagnosis">Diagnosing error pattern with AI...</p>';
       try {
         const res = await fetch(`/errors/${error.fingerprint}/diagnose`, { method: 'POST' });
-        const diag = await res.json();
-        if (!res.ok) throw new Error(diag.detail || 'Diagnosis failed.');
+        const resData = await res.json();
+        if (!res.ok) throw new Error(resData.detail || 'Diagnosis failed.');
+        const diag = resData.diagnosis || resData;
         diagnosisBox.innerHTML = `
           <div class="diagnosis-content">
             <h4>AI Diagnosis</h4>
             <div class="diag-section"><strong>Summary:</strong> ${diag.summary}</div>
+            ${diag.what_happened ? `<div class="diag-section"><strong>What Happened:</strong> ${diag.what_happened}</div>` : ''}
+            ${diag.why_it_happened ? `<div class="diag-section"><strong>Why It Happened:</strong> ${diag.why_it_happened}</div>` : ''}
             <div class="diag-section"><strong>Root Cause:</strong> ${diag.root_cause}</div>
             <div class="diag-section"><strong>Confidence:</strong> ${(diag.confidence * 100).toFixed(0)}%</div>
+            ${diag.beginner_explanation ? `<div class="diag-section"><strong>Beginner Explanation:</strong> ${diag.beginner_explanation}</div>` : ''}
+            ${diag.recommended_fix ? `<div class="diag-section"><strong>How To Fix:</strong> ${diag.recommended_fix}</div>` : ''}
+            ${diag.code_improvement ? `<div class="diag-section"><strong>Code Improvement:</strong> ${diag.code_improvement}</div>` : ''}
+            ${diag.suggested_patch ? `<div class="diag-section"><strong>Suggested Patch:</strong> <pre>${diag.suggested_patch}</pre></div>` : ''}
+            ${diag.why_this_improves_the_code ? `<div class="diag-section"><strong>Why It Improves Code:</strong> ${diag.why_this_improves_the_code}</div>` : ''}
+            ${diag.prevention_steps && diag.prevention_steps.length ? `<div class="diag-section"><strong>Prevention Steps:</strong><ul>${diag.prevention_steps.map(s => `<li>${s}</li>`).join('')}</ul></div>` : ''}
+            ${diag.verification_steps && diag.verification_steps.length ? `<div class="diag-section"><strong>Verification Steps:</strong><ul>${diag.verification_steps.map(s => `<li>${s}</li>`).join('')}</ul></div>` : ''}
             ${diag.recommendations && diag.recommendations.length ? `<div class="diag-section"><strong>Recommendations:</strong><ul>${diag.recommendations.map(r => `<li>${r}</li>`).join('')}</ul></div>` : ''}
           </div>`;
       } catch (err) {
-        diagnosisBox.innerHTML = `<p class="error-diagnosis">${err.message || 'Diagnosis service unavailable.'}</p>`;
+        diagnosisBox.innerHTML = `<p class="error-diagnosis">${err.message || 'AI diagnosis is temporarily unavailable.'}</p>`;
       } finally {
         button.disabled = false;
       }

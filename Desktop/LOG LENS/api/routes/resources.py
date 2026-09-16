@@ -106,7 +106,11 @@ def upload_contract(
 @router.post("/errors/{fingerprint}/diagnose", response_model=dict, status_code=200)
 def diagnose(fingerprint: str, service: Annotated[ApplicationService, Depends(_service)], _user=Depends(require_user)):
     try:
-        return service.diagnose(fingerprint, user=_user)
+        diagnosis_data = service.diagnose(fingerprint, user=_user)
+        return {
+            "fingerprint": fingerprint,
+            "diagnosis": diagnosis_data,
+        }
     except ResourceNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except OwnershipNotConfiguredError as exc:
@@ -114,4 +118,4 @@ def diagnose(fingerprint: str, service: Annotated[ApplicationService, Depends(_s
     except DiagnosisNotConfiguredError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
     except DiagnosisServiceError as exc:
-        raise HTTPException(status_code=503, detail="diagnosis provider unavailable") from exc
+        raise HTTPException(status_code=503, detail="AI diagnosis is temporarily unavailable.") from exc
