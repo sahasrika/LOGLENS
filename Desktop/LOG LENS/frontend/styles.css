@@ -73,8 +73,14 @@ textarea::placeholder { color: #444440; }
 .error-meta { display: flex; flex-wrap: wrap; gap: 8px 14px; margin-top: 9px; color: var(--muted); font: 10px 'DM Mono', monospace; }
 .severity { color: var(--white); border: 1px solid #4a4a46; padding: 4px 7px; font: 9px 'DM Mono', monospace; letter-spacing: .08em; white-space: nowrap; }
 .fingerprint { color: var(--dim); margin-top: 11px; font: 9px 'DM Mono', monospace; }
-.detail-toggle { color: var(--muted); background: none; border: 0; padding: 0; font-size: 11px; text-decoration: underline; text-underline-offset: 3px; }
-.details { margin-top: 14px; padding: 13px; background: #0b0b0b; color: #aaa; white-space: pre-wrap; word-break: break-word; font: 10px/1.55 'DM Mono', monospace; }
+.action-buttons { display: flex; gap: 12px; margin-top: 11px; }
+.detail-toggle, .diagnose-button { color: var(--muted); background: none; border: 0; padding: 0; font-size: 11px; text-decoration: underline; text-underline-offset: 3px; }
+.diagnose-button { color: #82aaff; }
+.details, .diagnosis-box { margin-top: 14px; padding: 13px; background: #0b0b0b; color: #aaa; white-space: pre-wrap; word-break: break-word; font: 10px/1.55 'DM Mono', monospace; }
+.diagnosis-box { border: 1px solid #283b5e; background: #0a1120; }
+.diagnosis-content h4 { margin: 0 0 8px; color: #82aaff; font-size: 11px; font-family: 'DM Mono', monospace; }
+.diag-section { margin-bottom: 6px; line-height: 1.4; }
+.diag-section ul { margin: 4px 0 0 16px; padding: 0; }
 .footer { display: flex; justify-content: space-between; gap: 16px; padding: 18px 0 24px; color: var(--dim); border-top: 1px solid var(--line); font-size: 9px; letter-spacing: .08em; }
 @media (max-width: 850px) { .shell { width: min(100% - 30px, 600px); } main { padding-top: 55px; } .workspace { grid-template-columns: 1fr; } .panel { min-height: auto; } .empty-state { min-height: 280px; } }
 @media (max-width: 500px) { .topbar { height: 70px; } .topbar-meta { font-size: 8px; } h1 { font-size: 44px; } .footer { flex-direction: column; gap: 8px; } .panel-heading { padding: 0 17px; } .dropzone, textarea { margin-left: 17px; margin-right: 17px; width: calc(100% - 34px); } .input-footer, .feedback { margin-left: 17px; margin-right: 17px; } .result-content { padding: 0 17px; } }

@@ -21,6 +21,7 @@ class AppConfig:
     cognito_client_id: str | None = None
     cognito_jwks_url: str | None = None
     cognito_token_use: str = "access"
+    bedrock_model_id: str = "anthropic.claude-3-5-sonnet-20241022-v2:0"
 
     @classmethod
     def from_env(cls) -> "AppConfig":
@@ -41,6 +42,9 @@ class AppConfig:
             cognito_client_id=os.getenv("COGNITO_CLIENT_ID"),
             cognito_jwks_url=os.getenv("COGNITO_JWKS_URL"),
             cognito_token_use=os.getenv("COGNITO_TOKEN_USE", "access").strip().lower(),
+            bedrock_model_id=os.getenv(
+                "BEDROCK_MODEL_ID", "anthropic.claude-3-5-sonnet-20241022-v2:0"
+            ).strip(),
         )
         if config.storage_mode == "aws":
             if not config.aws_region:
