@@ -42,27 +42,6 @@ class Diagnosis(BaseModel):
     summary: str = Field(min_length=1)
     severity: Literal["low", "medium", "high", "critical"] = "medium"
     confidence: float = Field(ge=0.0, le=1.0)
-    error_category: str = Field(default="Uncategorized")
-
-    what_happened: str = Field(default="")
-    why_it_happened: str = Field(default="")
-
-    evidence: list[DiagnosisEvidence] = Field(default_factory=list)
-    affected_files: list[str] = Field(default_factory=list)
-
-    root_cause: str = Field(min_length=1)
-
-    beginner_explanation: str = Field(default="")
-    recommended_fix: str = Field(default="")
-    code_improvement: str = Field(default="")
-    suggested_patch: str = Field(default="")
-    why_this_improves_the_code: str = Field(default="")
-
-    prevention_steps: list[str] = Field(default_factory=list)
-    verification_steps: list[str] = Field(default_factory=list)
-    limitations: list[str] = Field(default_factory=list)
-
-    recommendations: list[str] = Field(default_factory=list)
 
 
 class DiagnosisService(ABC):
@@ -207,16 +186,7 @@ class BedrockDiagnosisService(DiagnosisService):
             '  "evidence": [\n'
             '    {"fingerprint": "fp", "observation": "obs", "source": "error_record|log|stack_trace|pattern|code", "confidence": "confirmed|likely|possible"}\n'
             '  ],\n'
-            '  "affected_files": ["file1", "file2"],\n'
-            '  "root_cause": "Root cause summary",\n'
-            '  "beginner_explanation": "Beginner friendly analogy or explanation",\n'
-            '  "recommended_fix": "Steps to fix",\n'
-            '  "code_improvement": "Proposed modification",\n'
-            '  "suggested_patch": "Code snippet patch",\n'
-            '  "why_this_improves_the_code": "Why this improves reliability/performance",\n'
-            '  "prevention_steps": ["step1", "step2"],\n'
-            '  "verification_steps": ["check1", "check2"],\n'
-            '  "limitations": ["limitation1"]\n'
+          
             "}\n\n"
             "Strict rules:\n"
             "1. Output ONLY valid JSON matching the schema, with no markdown code blocks or additional text.\n"

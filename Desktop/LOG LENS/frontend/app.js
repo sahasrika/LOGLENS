@@ -12,6 +12,7 @@ const errorList = document.querySelector('#error-list');
 const patternCount = document.querySelector('#pattern-count');
 const analysisStatus = document.querySelector('#analysis-status');
 const resultState = document.querySelector('#result-state');
+const providerStatus = document.querySelector('#provider-status');
 
 fileButton.addEventListener('click', () => fileInput.click());
 fileInput.addEventListener('change', () => handleFile(fileInput.files[0]));
@@ -36,6 +37,12 @@ async function handleFile(file) {
     setFeedback('Only .log and .txt files are supported.');
     return;
   }
+
+  fetch('/bedrock/status').then((response) => response.json()).then((data) => {
+    providerStatus.textContent = data.provider === 'bedrock' ? 'BEDROCK CONFIGURED' : 'LOCAL ANALYSIS';
+  }).catch(() => {
+    providerStatus.textContent = 'SERVICE OFFLINE';
+  });
   try {
     logInput.value = await file.text();
     logInput.dispatchEvent(new Event('input'));
@@ -144,6 +151,7 @@ function renderResults(data) {
             ${diag.prevention_steps && diag.prevention_steps.length ? `<div class="diag-section"><strong>Prevention Steps:</strong><ul>${diag.prevention_steps.map(s => `<li>${s}</li>`).join('')}</ul></div>` : ''}
             ${diag.verification_steps && diag.verification_steps.length ? `<div class="diag-section"><strong>Verification Steps:</strong><ul>${diag.verification_steps.map(s => `<li>${s}</li>`).join('')}</ul></div>` : ''}
             ${diag.recommendations && diag.recommendations.length ? `<div class="diag-section"><strong>Recommendations:</strong><ul>${diag.recommendations.map(r => `<li>${r}</li>`).join('')}</ul></div>` : ''}
+            ${diag.impact && diag.impact.length ? `<div class="diag-section"><strong>Possible impact:</strong><ul>${diag.impact.map(item => `<li>${item}</li>`).join('')}</ul></div>` : ''}
           </div>`;
       } catch (err) {
         diagnosisBox.innerHTML = `<p class="error-diagnosis">${err.message || 'AI diagnosis is temporarily unavailable.'}</p>`;

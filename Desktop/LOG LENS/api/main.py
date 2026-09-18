@@ -25,6 +25,7 @@ Design notes
 from __future__ import annotations
 
 import logging
+import os
 from pathlib import Path
 from uuid import uuid4
 
@@ -105,7 +106,21 @@ async def authentication_exception_handler(request: Request, exc: Authentication
 )
 def health() -> dict:
     """Service health check."""
-    return {"status": "ok", "service": "loglens"}
+    return {
+        "status": "ok",
+        "service": "loglens",
+    }
+
+
+@app.get("/bedrock/status", tags=["Health"])
+def bedrock_status() -> dict:
+    """Report whether Bedrock is configured for diagnosis requests."""
+    model_id = os.getenv("BEDROCK_MODEL_ID")
+    return {
+        "configured": bool(model_id),
+        "provider": "bedrock" if model_id else "local",
+        "model": model_id,
+    }
 
 
 app.include_router(analyze_router, tags=["Analysis"])
