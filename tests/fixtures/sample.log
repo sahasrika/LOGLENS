@@ -1,0 +1,90 @@
+# ============================================================
+# LogLens representative sample log file
+# Contains: INFO, WARN, ERROR, repeated errors, unique errors,
+# Java stack trace, Python stack trace, request IDs, user IDs,
+# multiple services, malformed lines, missing timestamps.
+# No real credentials, secrets, or personal data.
+# ============================================================
+
+# --- Standard format: payment-service ---
+2026-08-16 08:00:01,000 INFO  [payment-service] Application started successfully
+2026-08-16 08:00:02,100 INFO  [payment-service] Connected to database host=db-primary port=5432
+2026-08-16 08:00:15,300 INFO  [payment-service] Processing payment request_id=req-aaa111 user_id=10001 amount=99.99
+2026-08-16 08:00:15,450 ERROR [payment-service] Payment failed for user 10001 request_id=req-aaa111
+2026-08-16 08:00:16,200 INFO  [payment-service] Processing payment request_id=req-bbb222 user_id=20002 amount=49.00
+2026-08-16 08:00:16,380 ERROR [payment-service] Payment failed for user 20002 request_id=req-bbb222
+2026-08-16 08:00:17,100 INFO  [payment-service] Processing payment request_id=req-ccc333 user_id=30003 amount=129.50
+2026-08-16 08:00:17,290 ERROR [payment-service] Payment failed for user 30003 request_id=req-ccc333
+2026-08-16 08:00:20,000 WARN  [payment-service] Retry threshold exceeded retries=5 request_id=req-aaa111
+2026-08-16 08:00:21,500 ERROR [payment-service] Database connection timeout host=db-primary port=5432 attempt=3
+
+# --- Standard format with Java-style stack trace ---
+2026-08-16 08:01:00,000 ERROR [order-service] Unhandled exception while processing order order_id=ORD-789
+	at com.example.orders.OrderProcessor.process(OrderProcessor.java:142)
+	at com.example.orders.OrderController.submit(OrderController.java:87)
+	at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+Caused by: java.lang.NullPointerException: Order item list cannot be null
+	at com.example.orders.OrderValidator.validate(OrderValidator.java:56)
+	... 3 more
+
+# --- Second occurrence of the same NullPointerException pattern ---
+2026-08-16 08:02:00,000 ERROR [order-service] Unhandled exception while processing order order_id=ORD-991
+	at com.example.orders.OrderProcessor.process(OrderProcessor.java:142)
+	at com.example.orders.OrderController.submit(OrderController.java:87)
+Caused by: java.lang.NullPointerException: Order item list cannot be null
+	at com.example.orders.OrderValidator.validate(OrderValidator.java:56)
+	... 3 more
+
+# --- Different error: ClassCastException (must NOT share fingerprint with NPE above) ---
+2026-08-16 08:03:00,000 ERROR [order-service] Type mismatch in order pipeline order_id=ORD-100
+	at com.example.orders.OrderMapper.map(OrderMapper.java:33)
+Caused by: java.lang.ClassCastException: Cannot cast java.lang.String to java.lang.Integer
+	at com.example.orders.OrderMapper.map(OrderMapper.java:30)
+
+# --- Logback / Log4j format: auth-service ---
+2026-08-16T08:04:00.000Z INFO  c.e.auth.AuthService - Service initialised env=production
+2026-08-16T08:04:01.123Z WARN  c.e.auth.TokenValidator - Token expiry approaching token_ttl=60
+2026-08-16T08:04:05.456Z ERROR c.e.auth.AuthController - Authentication failed session_id=550e8400-e29b-41d4-a716-446655440000
+2026-08-16T08:04:07.789Z ERROR c.e.auth.AuthController - Authentication failed session_id=7a6f9b3c-1d2e-4f5a-8b9c-0e1f2a3b4c5d
+
+# --- Python logging format: inventory-service ---
+INFO:inventory.service:Stock check started warehouse_id=WH-01
+WARN:inventory.service:Low stock detected sku=WIDGET-42 quantity=3
+ERROR:inventory.service:Stock reservation failed sku=WIDGET-42 request_id=req-ddd444
+ERROR:inventory.service:Stock reservation failed sku=WIDGET-99 request_id=req-eee555
+ERROR:inventory.service:External supplier API unreachable url=https://supplier.internal/api/v1 status=503
+
+# --- Python stack trace ---
+ERROR:inventory.service:Unexpected error during inventory sync
+Traceback (most recent call last):
+  File "/app/inventory/sync.py", line 88, in run_sync
+    result = self._fetch_remote()
+  File "/app/inventory/sync.py", line 120, in _fetch_remote
+    data = json.loads(raw_response)
+  File "/usr/lib/python3.11/json/__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+json.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+
+# --- Syslog format: api-gateway ---
+Aug 16 08:05:00 prod-host api-gateway[4421]: Request received method=GET path=/api/v1/users
+Aug 16 08:05:01 prod-host api-gateway[4421]: Request completed status=200 duration_ms=45
+Aug 16 08:05:10 prod-host api-gateway[4421]: Upstream ERROR response status=502 upstream=order-service
+Aug 16 08:05:11 prod-host api-gateway[4421]: Upstream ERROR response status=502 upstream=order-service
+
+# --- WARN repeated pattern: cache-service ---
+2026-08-16 08:06:00,000 WARN  [cache-service] Cache miss key=user:session:10001
+2026-08-16 08:06:01,000 WARN  [cache-service] Cache miss key=user:session:20002
+2026-08-16 08:06:02,000 WARN  [cache-service] Cache miss key=user:session:30003
+
+# --- Malformed / truncated lines ---
+INCOMPLETE LOG ENTRY [corrupted
+2026-08-16 08:07:00
+!!@@##$$%%
+
+# --- Lines with no timestamp ---
+ERROR No timestamp on this error line user_id=99999
+WARN Something looks wrong here but no time info
+
+# --- IP addresses in messages ---
+2026-08-16 08:08:00,000 ERROR [firewall] Blocked suspicious request from 192.168.100.200 to port 22
+2026-08-16 08:08:01,000 ERROR [firewall] Blocked suspicious request from 10.0.0.55 to port 22

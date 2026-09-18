@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b0b0b">
+  <title>LOG LENS</title>
+  <link rel="stylesheet" href="/ui/styles.css">
+</head>
+<body>
+  <div class="shell">
+    <header class="topbar">
+      <a class="brand" href="/ui/">LOG LENS<span class="brand-mark">/</span></a>
+      <div class="topbar-meta"><span class="status-dot"></span> LOCAL ANALYSIS</div>
+        <div class="topbar-meta"><span class="status-dot"></span> <span id="provider-status">ANALYSIS READY</span></div>
+    </header>
+
+    <main>
+      <section class="intro">
+        <p class="eyebrow">LOG INTELLIGENCE / 01</p>
+        <h1>See what went wrong.</h1>
+        <p class="lede">Drop in a log file or paste raw output. LOG LENS isolates the patterns that matter.</p>
+      </section>
+
+      <section class="workspace" aria-label="Log analysis workspace">
+        <div class="input-panel panel">
+          <div class="panel-heading">
+            <div><span class="panel-index">01</span><h2>Input</h2></div>
+            <span class="format-note">.LOG / .TXT / RAW</span>
+          </div>
+          <div class="dropzone" id="dropzone">
+            <input id="file-input" type="file" accept=".log,.txt,text/plain" hidden>
+            <button class="drop-action" id="file-button" type="button">Choose a log file</button>
+            <p>or drag and drop here</p>
+            <span id="file-name">No file selected</span>
+          </div>
+          <div class="divider"><span>OR PASTE TEXT</span></div>
+          <textarea id="log-input" placeholder="2026-08-16 12:00:00 ERROR [service] Something failed..."></textarea>
+          <div class="input-footer">
+            <span id="char-count">0 characters</span>
+            <button class="primary-button" id="analyze-button" type="button">Analyze <span>→</span></button>
+          </div>
+          <p class="feedback" id="feedback" role="status"></p>
+        </div>
+
+        <div class="results-panel panel" id="results-panel">
+          <div class="panel-heading">
+            <div><span class="panel-index">02</span><h2>Findings</h2></div>
+            <span class="format-note" id="result-state">WAITING</span>
+          </div>
+          <div class="empty-state" id="empty-state">
+            <div class="empty-glyph">∅</div>
+            <p>Your findings will appear here.</p>
+            <span>Patterns, severity, and recurrence in one view.</span>
+          </div>
+          <div class="result-content" id="result-content" hidden>
+            <div class="summary-row">
+              <div><span class="summary-label">PATTERNS</span><strong id="pattern-count">0</strong></div>
+              <div><span class="summary-label">STATUS</span><strong id="analysis-status">COMPLETE</strong></div>
+            </div>
+            <div class="diagnosis-box analysis-diagnosis" id="analysis-diagnosis" hidden></div>
+            <div class="error-list" id="error-list"></div>
+            <section class="insight-section" id="insight-section" hidden>
+              <div class="insight-heading">
+                <span class="summary-label">INSIGHTS</span>
+                <span class="format-note">FROM CURRENT ANALYSIS</span>
+              </div>
+              <div class="insight-layout">
+                <div class="insight-main">
+                  <div class="stat-cards" id="stat-cards"></div>
+                  <div class="chart-panel">
+                    <div class="chart-header">
+                      <span class="summary-label">ISSUES BY COMPONENT</span>
+                      <div class="chart-legend" id="chart-legend"></div>
+                    </div>
+                    <div class="chart-frame" id="component-chart"></div>
+                  </div>
+                  <div class="risk-priority-row" id="risk-priority"></div>
+                </div>
+                <aside class="architecture-column">
+                  <span class="summary-label">DETECTED ARCHITECTURE</span>
+                  <div class="architecture-cards" id="architecture-cards"></div>
+                </aside>
+              </div>
+            </section>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer"><span>LOG LENS</span><span>STRUCTURED LOG ANALYSIS</span><span>10 MB MAX INPUT</span></footer>
+  </div>
+  <script src="/ui/app.js"></script>
+</body>
+</html>
