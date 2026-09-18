@@ -94,9 +94,20 @@ def serialize_evidence(records: list[ErrorRecord]) -> str:
 
 
 def parse_diagnosis_output(output: str | dict[str, Any]) -> Diagnosis:
-    """Strictly validate provider JSON; do not repair or infer missing fields."""
+    """Strictly validate provider JSON; strip markdown blocks if needed."""
     try:
-        payload = json.loads(output) if isinstance(output, str) else output
+        if isinstance(output, str):
+            text = output.strip()
+            if text.startswith("```"):
+                lines = text.splitlines()
+                if lines[0].startswith("```"):
+                    lines = lines[1:]
+                if lines and lines[-1].startswith("```"):
+                    lines = lines[:-1]
+                text = "\n".join(lines).strip()
+            payload = json.loads(text)
+        else:
+            payload = output
         return Diagnosis.model_validate(payload)
     except (json.JSONDecodeError, TypeError, ValidationError) as exc:
         raise MalformedDiagnosisError("diagnosis output is malformed") from exc
@@ -126,7 +137,7 @@ class MockDiagnosisService(DiagnosisService):
 import re
 
 _AWS_KEY_PATTERN = re.compile(r"\b(AKIA|ASIA)[0-9A-Z]{16}\b")
-_BEARER_JWT_PATTERN = re.compile(r"\b(bearer\s+|jwt\s+)?[A-Za-z0-9-_=]+\.[A-Za-z0-9-_=]+\.?[A-Za-z0-9-_.+/=]*\b", re.IGNORECASE)
+_BEARER_JWT_PATTERN = re.compile(r"\b(bearer\s+|jwt\s+)(eyJ[A-Za-z0-9-_=]+\.[A-Za-z0-9-_=]+\.?[A-Za-z0-9-_.+/=]*)\b|\beyJ[A-Za-z0-9-_=]{10,}\.[A-Za-z0-9-_=]{10,}\.[A-Za-z0-9-_.+/=]{10,}\b", re.IGNORECASE)
 _SENSITIVE_PARAM_PATTERN = re.compile(r"(?i)\b(password|passwd|secret|token|api[_-]?key|access[_-]?key|auth|credentials)\b\s*[:=]\s*['\"]?([^\s'\";]+)")
 _IP_PATTERN = re.compile(r"\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b")
 
@@ -174,7 +185,7 @@ class BedrockDiagnosisService(DiagnosisService):
 
     def __init__(self, client: Any | None = None, model_id: str | None = None) -> None:
         self.client = client
-        self.model_id = model_id if model_id is not None else "global.anthropic.claude-sonnet-4-6"
+        self.model_id = model_id if model_id is not None else "amazon.nova-lite-v1:0"
 
     def diagnose(self, records: list[ErrorRecord]) -> Diagnosis:
         if not self.model_id or not self.model_id.strip():
@@ -214,14 +225,30 @@ class BedrockDiagnosisService(DiagnosisService):
         )
 
         try:
-            body = json.dumps({
-                "anthropic_version": "bedrock-2023-05-31",
-                "max_tokens": 1000,
-                "messages": [
-                    {"role": "user", "content": prompt}
-                ],
-                "temperature": 0.1,
-            })
+            is_nova = "nova" in self.model_id.lower() or "amazon" in self.model_id.lower()
+            if is_nova:
+                body = json.dumps({
+                    "messages": [
+                        {
+                            "role": "user",
+                            "content": [{"text": prompt}]
+                        }
+                    ],
+                    "inferenceConfig": {
+                        "max_new_tokens": 1000,
+                        "temperature": 0.1
+                    }
+                })
+            else:
+                body = json.dumps({
+                    "anthropic_version": "bedrock-2023-05-31",
+                    "max_tokens": 1000,
+                    "messages": [
+                        {"role": "user", "content": prompt}
+                    ],
+                    "temperature": 0.1,
+                })
+
             response = self.client.invoke_model(
                 modelId=self.model_id,
                 body=body,
@@ -229,7 +256,12 @@ class BedrockDiagnosisService(DiagnosisService):
                 accept="application/json",
             )
             response_body = json.loads(response.get("body").read())
-            content = response_body.get("content", [])[0].get("text", "")
+
+            if is_nova:
+                content = response_body.get("output", {}).get("message", {}).get("content", [])[0].get("text", "")
+            else:
+                content = response_body.get("content", [])[0].get("text", "")
+
             return parse_diagnosis_output(content)
         except (MalformedDiagnosisError, InvalidEvidenceError) as exc:
             raise exc

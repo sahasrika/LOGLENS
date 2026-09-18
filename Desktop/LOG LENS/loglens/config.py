@@ -21,7 +21,7 @@ class AppConfig:
     cognito_client_id: str | None = None
     cognito_jwks_url: str | None = None
     cognito_token_use: str = "access"
-    bedrock_model_id: str = "global.anthropic.claude-sonnet-4-6"
+    bedrock_model_id: str = "amazon.nova-lite-v1:0"
 
     @classmethod
     def from_env(cls) -> "AppConfig":
@@ -43,7 +43,7 @@ class AppConfig:
             cognito_jwks_url=os.getenv("COGNITO_JWKS_URL"),
             cognito_token_use=os.getenv("COGNITO_TOKEN_USE", "access").strip().lower(),
             bedrock_model_id=os.getenv(
-                "BEDROCK_MODEL_ID", "global.anthropic.claude-sonnet-4-6"
+                "BEDROCK_MODEL_ID", "amazon.nova-lite-v1:0"
             ).strip(),
         )
         if config.storage_mode == "aws":
