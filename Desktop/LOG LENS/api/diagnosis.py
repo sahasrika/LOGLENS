@@ -43,6 +43,7 @@ class Diagnosis(BaseModel):
     confidence: float = Field(ge=0.0, le=1.0)
     evidence: list[DiagnosisEvidence] = Field(min_length=1)
     recommendations: list[str] = Field(min_length=1)
+    impact: list[str] = Field(default_factory=list)
 
 
 class DiagnosisService(ABC):
@@ -170,7 +171,8 @@ class BedrockDiagnosisService(DiagnosisService):
             '  "evidence": [\n'
             '    {"fingerprint": "record fingerprint", "observation": "specific observation", "source": "error_record"}\n'
             '  ],\n'
-            '  "recommendations": ["Non-empty list of actionable recommendation strings"]\n'
+            '  "recommendations": ["Non-empty list of actionable recommendation strings"],\n'
+            '  "impact": ["Likely affected files, modules, or dependent systems"]\n'
             "}\n\n"
             "Strict rules:\n"
             "1. Output ONLY valid JSON matching the schema, with no markdown code blocks or additional text.\n"
